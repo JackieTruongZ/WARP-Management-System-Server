@@ -16,6 +16,8 @@ export const googleMiddleware = (req: Request, res: Response, next: NextFunction
             });
         }
         req.user = user;
-        next();
+        res.redirect("http://localhost:3000");
+        // req.user = user;
+        // next();
     })(req, res, next);
 }
