@@ -22,8 +22,6 @@ class UserService extends BaseService<User, CreateUserDto> {
   public passportLoginHandle = async (profile: Profile, done: (error: any, user?: any) => void) => {
     const findUser = await this.query.findByGoogleId(profile.id);
     if (findUser) {
-      console.log("user found : ", findUser);
-
       done(null, findUser);
     }
     else {
@@ -42,7 +40,7 @@ class UserService extends BaseService<User, CreateUserDto> {
 
       const findUser = await this.query.findByGoogleId(profile.id);
 
-      console.log("user found : ", findUser);
+      // console.log("user found : ", findUser);
       done(null, findUser);
 
     }

@@ -24,11 +24,21 @@ class AuthController {
   }
 
   google(req: Request, res: Response, next: NextFunction) {
-    passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+    const profileScope: string = "https://www.googleapis.com/auth/userinfo.profile"
+    const emailScope: string = "https://www.googleapis.com/auth/userinfo.email"
+    const numberphoneScope: string = "https://www.googleapis.com/auth/user.phonenumbers.read"
+
+    passport.authenticate("google", {
+      scope: ['https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/user.phonenumbers.read',
+        'https://www.googleapis.com/auth/user.addresses.read',
+        'https://www.googleapis.com/auth/profile.agerange.read']
+    })(req, res, next);
   }
 
   loginSuccess(req: RequestWithUser, res: Response, next: NextFunction) {
-    console.log('user : ', req.user);
+    // console.log('user : ', req.user);
 
     if (req.user) {
       res.status(200).json({
