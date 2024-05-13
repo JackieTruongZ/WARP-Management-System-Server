@@ -1,6 +1,7 @@
 import { Strategy as GoogleStrategy, Profile } from "passport-google-oauth20";
 import passport from "passport";
 import UserService from "@/services/users.service";
+import { Request, Response } from "express";
 
 class PassportConfig {
     protected userService: UserService;
@@ -33,11 +34,11 @@ class PassportConfig {
                     // Check if google profile exist.
                     console.log('profile :', profile);
 
-                    if (profile.id) {
-                        const phoneNumbers = profile.phoneNumbers || [];
-                        console.log('phone :', phoneNumbers);
+                    // console.log(req.cookies);
 
-                        // this.userService.passportLoginHandle(profile, done);
+                    if (profile.id) {
+
+                        this.userService.passportLoginHandle(profile, done);
 
                     }
                 }

@@ -1,87 +1,91 @@
 import { hash, compare } from 'bcrypt';
 import { sign } from 'jsonwebtoken';
 import { SECRET_KEY } from '@config';
-import { CreateUserDto } from '@dtos/users.dto';
+import { CreateUserDto, CreateUserDtoGoogleAuth } from '@dtos/users.dto';
 import { HttpException } from '@exceptions/HttpException';
 import { DataStoredInToken, TokenData } from '@interfaces/auth.interface';
 import { User } from '@interfaces/users.interface';
 import { isEmpty } from '@utils/util';
 import { db } from '@/databases/db';
+import BaseService from '@/base/base.service';
+import config from '@/config/default'
+import qs from "qs";
+import axios from 'axios';
+
+interface GoogleTokensResult {
+  access_token: string;
+  expires_in: Number;
+  refresh_token: string;
+  scope: string;
+  id_token: string;
+}
 
 class AuthService {
 
-  public async signup(userData: CreateUserDto): Promise<User> {
 
-    if (isEmpty(userData)) throw new HttpException(400, "userData is empty");
+  public getGoogleOAuthTokens = async (code: string): Promise<GoogleTokensResult> => {
 
-    // check exist user 
-    const findUser: User = await db.collection<User>('users').findOne({ email: userData.email });
-    if (findUser) throw new HttpException(409, `This email ${userData.email} already exists`);
+    //-------- CREATE GOOGL API CALL GET TOKEN ------------------------
 
-    // hash password
-    const hashedPassword = await hash(userData.password, 10);
+    const url = "https://oauth2.googleapis.com/token";
 
-    // create user
-    const createUserData: any = await db.collection<CreateUserDto>('users').insertOne({ ...userData, password: hashedPassword });
-    return createUserData;
-  }
+    const values = {
+      code,
+      client_id: "505404240106-iq0kbjto829t8h3uj8p6lui8akn51t39.apps.googleusercontent.com",
+      client_secret: "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",
+      redirect_uri: "http://localhost:3333/auth/google/callback",
+      grant_type: "authorization_code",
+    };
 
-  public async login(userData: CreateUserDto): Promise<{ cookie: string; findUser: User }> {
+    //==================================================================
 
+    //-------- CALL GOOGL API GET TOKEN -------------------------------------
 
-    if (isEmpty(userData)) throw new HttpException(400, "userData is empty");
+    try {
+      const res = await axios.post<GoogleTokensResult>(
+        url,
+        qs.stringify(values),
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
+      );
+      // console.log("res data : ", res.data);
 
-    const findUser: User = await db.collection<User>('users').findOne({ email: userData.email });
+      return res.data;
 
-    //----- If email not exists ------------------
+      //=============================================================
 
-    if (!findUser) {
-      // hash password
-      const hashedPassword = await hash(userData.password, 10);
+    } catch (error: any) {
+      console.error(error.response.data.error);
 
-      // create user
-      const createUserData: any = await db.collection<CreateUserDto>('users').insertOne({ ...userData, password: hashedPassword });
-      const findUser: User = await db.collection<User>('users').findOne({ email: userData.email });
-
-      const tokenData = this.createToken(findUser);
-      const cookie = this.createCookie(tokenData);
-
-      return { cookie, findUser };
-
-    }
-
-    //---------- If email already exists -------------------
-
-    else {
-      const isPasswordMatching: boolean = await compare(userData.password, findUser.password);
-      if (!isPasswordMatching) throw new HttpException(409, "Id Google is not matching");
-
-      const tokenData = this.createToken(findUser);
-      const cookie = this.createCookie(tokenData);
-
-      return { cookie, findUser };
+      throw new Error(error.message);
     }
   }
 
-  public async logout(userData: User): Promise<User> {
-    if (isEmpty(userData)) throw new HttpException(400, "userData is empty");
 
-    const findUser: User = await db.collection<User>('users').findOne({ email: userData.email });
-    if (!findUser) throw new HttpException(409, `This email ${userData.email} was not found`);
 
-    return findUser;
-  }
+  public getGoogleUser = async ({ id_token, access_token }): Promise<CreateUserDtoGoogleAuth> => {
 
-  public createToken(user: User): TokenData {
-    const dataStoredInToken: DataStoredInToken = { _id: user._id };
-    const secretKey: string = SECRET_KEY;
-    const expiresIn: number = 60 * 60;
+    //-------- CALL GOOGL API GET INFOR USER -------------------------------------
 
-    return { expiresIn, token: sign(dataStoredInToken, secretKey, { expiresIn }) };
-  }
+    try {
+      const res = await axios.get<CreateUserDtoGoogleAuth>(
+        `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${access_token}`,
+        {
+          headers: {
+            Authorization: `Bearer ${id_token}`,
+          },
+        }
+      );
 
-  public createCookie(tokenData: TokenData): string {
-    return `Authorization=${tokenData.token}; HttpOnly; Max-Age=${tokenData.expiresIn};`;
+      return res.data;
+      //=================================================================================
+
+    } catch (error: any) {
+      throw new Error(error.message);
+    }
   }
 }
 

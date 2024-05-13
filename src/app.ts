@@ -13,10 +13,15 @@ import { dbConnection } from '@databases';
 import { Routes } from '@interfaces/routes.interface';
 import errorMiddleware from '@middlewares/error.middleware';
 import { logger, stream } from '@utils/logger';
-import { connect } from './databases/db';
+import { connect, db } from './databases/db';
 import passport from 'passport';
 import session from 'express-session';
 import passportStrategy from "@/config/passport";
+
+// const MongoStore = require('connect-mongodb-session')(session);
+
+// const mongoUrl = 'mongodb://localhost:27017/dev';
+// const sessionStore = new MongoStore({ url: mongoUrl });
 
 class App {
   public app: express.Application;
@@ -80,6 +85,7 @@ class App {
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(cookieParser());
+
     this.app.use(
       session({
         secret: 'session_secret',

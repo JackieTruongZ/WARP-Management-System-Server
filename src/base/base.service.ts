@@ -47,6 +47,45 @@ abstract class BaseService<TBase, TCreateDto> {
     }
 
     /*
+    Find by attributeBase service
+*/
+
+    public findByAttributeBase = async (attribute: string): Promise<any> => {
+
+        // Check data empty
+        if (isEmpty(attribute)) throw new HttpException(400, `${this.attributeBase}  is empty`);
+
+        // query 
+        const findData: Omit<TBase, '_id'> = await this.query.findByAttributeBase(attribute);
+
+        // Exception handle
+        if (!findData) throw new HttpException(409, `${this.attributeBase} doesn't exist`);
+
+        return findData;
+
+    }
+
+    /*
+Find by attribute service
+*/
+
+    public findByAttribute = async (attributeName: string, attribute: string): Promise<any> => {
+        
+
+        // Check data empty
+        if (isEmpty(attribute)) throw new HttpException(400, `${attributeName}  is empty`);
+
+        // query 
+        const findData: Omit<TBase, '_id'> = await this.query.findByAttribute(attributeName, attribute);
+
+        // Exception handle
+        if (!findData) throw new HttpException(409, `${attributeName} doesn't exist`);
+
+        return findData;
+
+    }
+
+    /*
         Create  service
     */
 
@@ -57,7 +96,7 @@ abstract class BaseService<TBase, TCreateDto> {
 
         // check attribute base exist  =========================
 
-        const findData: Omit<TBase, '_id'> = await this.query.findByAttribute(createData);
+        const findData: Omit<TBase, '_id'> = await this.query.findByAttributeBase(createData[this.attributeBase]);
 
         // Exception handle
         if (findData) throw new HttpException(409, `This ${this.attributeBase} ${createData[this.attributeBase]} already exists`);
@@ -85,7 +124,7 @@ abstract class BaseService<TBase, TCreateDto> {
         if (updateData[this.attributeBase]) {
 
             // query
-            const findData: WithId<TBase> = await this.query.findByAttributeWithoutId(updateData);
+            const findData: WithId<TBase> = await this.query.findByAttributeBaseWithoutId(updateData[this.attributeBase]);
 
             // check exist
             if (findData && findData._id?.toString() !== dataId) {

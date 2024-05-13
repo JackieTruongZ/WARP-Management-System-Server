@@ -14,7 +14,7 @@ class UserQuery extends BaseQuery<User, CreateUserDto> {
     public findByGoogleId = async (googleId: string) => {
 
         const query: Filter<User> = { googleId: googleId } as Filter<User>;
-        const findData: Omit<User, '_id'> = await db.collection<User>(this.collectionName).findOne(query);
+        const findData: User = await db.collection<User>(this.collectionName).findOne(query);
 
         return findData;
     }

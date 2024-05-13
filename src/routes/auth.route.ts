@@ -2,6 +2,10 @@ import { Router } from 'express';
 import AuthController from '@controllers/auth.controller';
 import { Routes } from '@interfaces/routes.interface';
 import { googleMiddleware } from '@/middlewares/google.middleware';
+import authMiddleware from '@/middlewares/auth.middleware';
+import AuthService from '@/services/auth.service';
+import UserService from '@/services/users.service';
+import SessionService from '@/services/session.service';
 const passport = require("passport");
 
 class AuthRoute implements Routes {
@@ -15,21 +19,10 @@ class AuthRoute implements Routes {
 
   private initializeRoutes() {
 
-    this.router.get(`${this.path}/login/success`, this.authController.loginSuccess);
-    this.router.get(`${this.path}/google`, passport.authenticate("google", {
-      scope: [
-        'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/user.phonenumbers.read',
-        'https://www.googleapis.com/auth/user.addresses.read',
-        'https://www.googleapis.com/auth/profile.agerange.read'
-      ]
-    }));
-    // this.router.get(`${this.path}/google/callback`, googleMiddleware);
-    this.router.get(`${this.path}/google/callback`, passport.authenticate('google', {
-      successRedirect: "http://localhost:3000",
-    }));
-    this.router.get(`${this.path}/logout`, this.authController.googleLogout);
+    this.router.get(`${this.path}/google`, this.authController.google);
+    this.router.get(`${this.path}/google/callback`, this.authController.googleCallBack);
+    this.router.get(`${this.path}/login/success`, authMiddleware, this.authController.loginSuccess);
+
 
   }
 }
