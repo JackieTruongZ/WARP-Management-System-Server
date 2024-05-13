@@ -1,34 +1,36 @@
-import { NextFunction, Request, Response } from 'express';
+import { CookieOptions, NextFunction, Request, Response } from 'express';
+import moment from 'moment';
+import useragent from 'useragent';
 import { RequestWithUser } from '@interfaces/auth.interface';
-import AuthService from '@services/auth.service';
+import { User } from '@/interfaces/users.interface';
+import AuthService from '@/services/auth.service';
+import UserService from '@/services/users.service';
+import SessionService from '@/services/session.service';
+import BaseController from '@/base/base.controller';
+import JwtUtils from '@/utils/jwt';
+import config from "@/config/default";
+// import { Session } from '@/interfaces/session.interface';
 
 const passport = require("passport");
 
+const accessTokenCookieOptions: CookieOptions = {
+  maxAge: 900000, // 15 mins
+  httpOnly: true,
+  domain: "localhost",
+  path: "/",
+  sameSite: "lax",
+  secure: false,
+};
+
+const refreshTokenCookieOptions: CookieOptions = {
+  ...accessTokenCookieOptions,
+  maxAge: 3.154e10, // 1 year
+};
+
 class AuthController {
 
-  public authService = new AuthService();
-
-  googleLogout(req: any, res: Response, next: NextFunction) {
-    req.logout((err: any) => {
-      if (err) {
-        return next(err);
-      }
-      res.redirect("http://localhost:3000/");
-    });
-  }
-
-  async googleCallBack(req: Request, res: Response, next: NextFunction) {
-
-    return res.redirect("http://localhost:3000");
-
-  }
-
-  google(req: Request, res: Response, next: NextFunction) {
-    passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
-  }
-
-  loginSuccess(req: RequestWithUser, res: Response, next: NextFunction) {
-    console.log('user : ', req.user);
+  async loginSuccess(req: RequestWithUser, res: Response, next: NextFunction) {
+    // console.log('user : ', req.user);
 
     if (req.user) {
       res.status(200).json({
@@ -41,42 +43,118 @@ class AuthController {
     }
   }
 
-  // public signUp = async (req: Request, res: Response, next: NextFunction) => {
-  //   // const {db} = req.app.db;
-  //   try {
-  //     const userData: CreateUserDto = req.body;
-  //     const signUpUserData: User = await this.authService.signup(userData);
+  async google(req: Request, res: Response, next: NextFunction) {
+    const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
 
-  //     res.status(201).json({ data: signUpUserData, message: 'signup' });
-  //   } catch (error) {
-  //     next(error);
-  //   }
-  // };
+    const options = {
+      redirect_uri: `http://localhost:3333/auth/google/callback`,
+      client_id: "505404240106-iq0kbjto829t8h3uj8p6lui8akn51t39.apps.googleusercontent.com",
+      access_type: "offline",
+      response_type: "code",
+      prompt: "consent",
+      scope: [
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/user.phonenumbers.read',
+        'https://www.googleapis.com/auth/user.addresses.read',
+        'https://www.googleapis.com/auth/profile.agerange.read'
+      ].join(" "),
+    };
 
-  // public logIn = async (req: Request, res: Response, next: NextFunction) => {
-  //   try {
-  //     const userData: CreateUserDto = req.body;
-  //     const { cookie, findUser } = await this.authService.login(userData);
+    const qs = new URLSearchParams(options);
 
-  //     res.setHeader('Set-Cookie', [cookie]);
-  //     res.status(200).json({ data: findUser, message: 'login' });
-  //   } catch (error) {
-  //     next(error);
-  //   }
-  // };
+    res.redirect(`${rootUrl}?${qs.toString()}`);
+  }
 
-  // public logOut = async (req: RequestWithUser, res: Response, next: NextFunction) => {
-  //   try {
-  //     const userData: User = req.user;
-  //     const logOutUserData: User = await this.authService.logout(userData);
+  async googleCallBack(req: RequestWithUser, res: Response, next: NextFunction) {
 
-  //     res.setHeader('Set-Cookie', ['Authorization=; Max-age=0']);
-  //     res.status(200).json({ data: logOutUserData, message: 'logout' });
-  //   } catch (error) {
-  //     next(error);
-  //   }
-  // };
+    const userService: UserService = new UserService();
+    const authService: AuthService = new AuthService();
+    const sessionService: SessionService = new SessionService();
+
+    const code = req.query.code as string;
+
+    try {
+
+      //---------- GET TOKEN OF GOOGLE TO GET INFOR USER -----------------
+      const { id_token, access_token } = await authService.getGoogleOAuthTokens(code);
+      console.log("tokennnn : ", { id_token, access_token });
+
+      //===================================================================
+
+      //---------- GET INFOR USER BY TOKEN -----------------
+      const googleUser = await authService.getGoogleUser({ id_token, access_token });
+
+
+      console.log({ googleUser });
+
+      //====================================================================
+      if (!googleUser.verified_email) {
+        return res.status(403).send("Google account is not verified");
+      }
+
+      //---------- CHECK AND SAVE USER BY TOKEN -----------------
+      const user = await userService.findAndUpdateUser(googleUser);
+
+
+      //=========================================================
+
+
+      //---------- CREATE OR UPDATE SESSION -----------------
+      const getDeviceInfo = (userAgentString) => {
+        const agent = useragent.parse(userAgentString);
+        return {
+          browser: agent.family,
+          os: agent.os.family,
+          device: agent.device.family
+        };
+      }
+
+      const sessionData: any = {
+        userId: user._id,
+        startTime: moment().utc().toISOString(), // Thời gian bắt đầu phiên đăng nhập
+        expirationTime: moment().utc().add(1, 'hour').toISOString(), // Thời gian hết hạn phiên đăng nhập (ví dụ: 1 giờ sau khi tạo phiên)
+        ipAddress: req.ip, // Địa chỉ IP của người dùng
+        userAgent: req.headers['user-agent'], // Thông tin trình duyệt của người dùng
+        deviceInfo: getDeviceInfo(req.headers['user-agent']) // Thông tin thiết bị của người dùng
+      };
+
+      const session = await sessionService.createSession(sessionData);
+
+      //===========================================
+
+
+      //---------- CREATE TOKEN ---------------------------
+      const accessToken = JwtUtils.signJwt(
+        { ...user, session: session._id },
+        { expiresIn: config.accessTokenTtl } // 15 minutes
+      );
+
+      const refreshToken = JwtUtils.signJwt(
+        { ...user, session: session._id },
+        { expiresIn: config.refreshTokenTtl } // 1 year
+      );
+      //=================================================
+
+      //---------- ADD TOKEN ON COOKIE -----------------
+
+      res.cookie("accessToken", accessToken, accessTokenCookieOptions);
+
+      res.cookie("refreshToken", refreshToken, refreshTokenCookieOptions);
+
+      //=================================================
+
+      res.redirect(config.origin);
+
+    } catch (error) {
+      console.log("error : ", error);
+
+      return res.redirect(`${config.origin}/oauth/error`);
+    }
+  }
 
 }
 
 export default AuthController;
+
+

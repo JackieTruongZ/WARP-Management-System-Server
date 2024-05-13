@@ -22,8 +22,6 @@ class UserService extends BaseService<User, CreateUserDto> {
   public passportLoginHandle = async (profile: Profile, done: (error: any, user?: any) => void) => {
     const findUser = await this.query.findByGoogleId(profile.id);
     if (findUser) {
-      console.log("user found : ", findUser);
-
       done(null, findUser);
     }
     else {
@@ -33,7 +31,7 @@ class UserService extends BaseService<User, CreateUserDto> {
         name: profile._json.name,
         givenName: profile._json.given_name,
         familyName: profile._json.family_name,
-        emailVerified: profile._json.email_verified,
+        verified_email: profile._json.email_verified,
         avatar: profile._json.picture,
         locale: profile._json.locale
       }
@@ -42,9 +40,34 @@ class UserService extends BaseService<User, CreateUserDto> {
 
       const findUser = await this.query.findByGoogleId(profile.id);
 
-      console.log("user found : ", findUser);
+      // console.log("user found : ", findUser);
       done(null, findUser);
 
+    }
+  }
+
+  public findAndUpdateUser = async (profile: any) => {
+    const findUser = await this.query.findByGoogleId(profile.id);
+    if (findUser) {
+      return findUser;
+    }
+    else {
+      const createUser: CreateUserDtoGoogleAuth = {
+        googleId: profile.id || ' ',
+        email: profile.emails[0].value || ' ',
+        name: profile._json.name || ' ',
+        givenName: profile._json.given_name || ' ',
+        familyName: profile._json.family_name || ' ',
+        verified_email: profile._json.email_verified || ' ',
+        avatar: profile._json.picture || ' ',
+        locale: profile._json.locale || ' ',
+      }
+
+      const saveUser = await this.query.saveUserGoogleAuth(createUser);
+
+      const findUser = await this.query.findByGoogleId(profile.id);
+      
+      return findUser;
     }
   }
 

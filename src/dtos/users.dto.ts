@@ -25,7 +25,7 @@ export class CreateUserDtoGoogleAuth {
   public familyName: string;
 
   @IsString()
-  public emailVerified: string;
+  public verified_email: string;
 
   @IsString()
   public avatar: string;
