@@ -54,19 +54,19 @@ class UserService extends BaseService<User, CreateUserDto> {
     else {
       const createUser: CreateUserDtoGoogleAuth = {
         googleId: profile.id || ' ',
-        email: profile.emails[0].value || ' ',
-        name: profile._json.name || ' ',
-        givenName: profile._json.given_name || ' ',
-        familyName: profile._json.family_name || ' ',
-        verified_email: profile._json.email_verified || ' ',
-        avatar: profile._json.picture || ' ',
-        locale: profile._json.locale || ' ',
+        email: profile.emails || ' ',
+        name: profile.name || ' ',
+        givenName: profile.given_name || ' ',
+        familyName: profile.family_name || ' ',
+        verified_email: profile.verified_email || ' ',
+        avatar: profile.picture || ' ',
+        locale: profile.locale || ' ',
       }
 
       const saveUser = await this.query.saveUserGoogleAuth(createUser);
 
       const findUser = await this.query.findByGoogleId(profile.id);
-      
+
       return findUser;
     }
   }

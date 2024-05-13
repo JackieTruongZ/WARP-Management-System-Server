@@ -44,6 +44,8 @@ class AuthController {
   }
 
   async google(req: Request, res: Response, next: NextFunction) {
+
+    //-------- CREATE GOOGL API CALL AUTHENTICATE ------------------------
     const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
 
     const options = {
@@ -63,6 +65,8 @@ class AuthController {
 
     const qs = new URLSearchParams(options);
 
+    //================================================================
+
     res.redirect(`${rootUrl}?${qs.toString()}`);
   }
 
@@ -78,15 +82,11 @@ class AuthController {
 
       //---------- GET TOKEN OF GOOGLE TO GET INFOR USER -----------------
       const { id_token, access_token } = await authService.getGoogleOAuthTokens(code);
-      console.log("tokennnn : ", { id_token, access_token });
 
       //===================================================================
 
       //---------- GET INFOR USER BY TOKEN -----------------
       const googleUser = await authService.getGoogleUser({ id_token, access_token });
-
-
-      console.log({ googleUser });
 
       //====================================================================
       if (!googleUser.verified_email) {
@@ -94,6 +94,7 @@ class AuthController {
       }
 
       //---------- CHECK AND SAVE USER BY TOKEN -----------------
+
       const user = await userService.findAndUpdateUser(googleUser);
 
 
