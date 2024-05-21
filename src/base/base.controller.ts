@@ -1,6 +1,7 @@
+import { IParamSearch } from "@/interfaces/base.interface";
 import { NextFunction, Request, Response } from "express"
 
-abstract class BaseController<TBase, TCreateDto> {
+abstract class BaseController<TBase, TCreateDto, TUpdateDto> {
 
     // using serivce abtract with type any
     protected abstract service: any;
@@ -30,6 +31,21 @@ abstract class BaseController<TBase, TCreateDto> {
         }
     }
 
+    // get by param 
+    public findAllByParam = async (req: Request, res: Response, next: NextFunction) => {
+
+        try {
+            const param: IParamSearch = req.body;
+            const findData: any = await this.service.findAllByParam(param);
+
+            res.status(200).json({ data: findData, message: 'findByFilter' });
+        } catch (error) {
+            next(error);
+        }
+
+    };
+
+
     // create
     public create = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -46,7 +62,7 @@ abstract class BaseController<TBase, TCreateDto> {
     public update = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const Id: string = req.params.id;
-            const Data: TCreateDto = req.body;
+            const Data: TUpdateDto = req.body;
             const updateData: TBase = await this.service.update(Id, Data);
 
             res.status(200).json({ data: updateData, message: 'updated' });

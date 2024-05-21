@@ -4,7 +4,8 @@ import SessionQuery from "@/query/session.query";
 
 
 
-class SessionService extends BaseService<Session, Session> {
+class SessionService extends BaseService<Session, Session, Session> {
+    protected nameInfor: string;
     protected collectionName: string = 'session';
     protected nameBase: string = 'Session';
     protected attributeBase: string = 'userId';

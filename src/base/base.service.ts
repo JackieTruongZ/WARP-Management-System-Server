@@ -1,26 +1,24 @@
 import { HttpException } from "@/exceptions/HttpException";
+import { IParamSearch } from "@/interfaces/base.interface";
 import { hash } from "bcrypt";
 import { isEmpty } from "class-validator";
 import { WithId } from "mongodb";
 
 
-abstract class BaseService<TBase, TCreateDto> {
+abstract class BaseService<TBase, TCreateDto, TUpdateDto> {
 
     // query import
     protected abstract query: any;
 
     // attribute import 
-    protected abstract collectionName: string;
     protected abstract nameBase: string;
     protected abstract attributeBase: string;
-    protected abstract listAttribute: string[];
-
 
     /*
         Find all service
     */
 
-    public findAll = async (): Promise<any> => {
+    public async findAll(): Promise<any> {
 
         const data: Omit<TBase, '_id'>[] = await this.query.find();
         return data;
@@ -31,7 +29,7 @@ abstract class BaseService<TBase, TCreateDto> {
         Find by Id service
    */
 
-    public findById = async (dataId: string): Promise<any> => {
+    public async findById(dataId: string): Promise<any> {
 
         // Check data empty
         if (isEmpty(dataId)) throw new HttpException(400, `${this.nameBase}Id is empty`);
@@ -50,7 +48,7 @@ abstract class BaseService<TBase, TCreateDto> {
     Find by attributeBase service
 */
 
-    public findByAttributeBase = async (attribute: string): Promise<any> => {
+    public async findByAttributeBase(attribute: string): Promise<any> {
 
         // Check data empty
         if (isEmpty(attribute)) throw new HttpException(400, `${this.attributeBase}  is empty`);
@@ -69,8 +67,8 @@ abstract class BaseService<TBase, TCreateDto> {
 Find by attribute service
 */
 
-    public findByAttribute = async (attributeName: string, attribute: string): Promise<any> => {
-        
+    public async findByAttribute(attributeName: string, attribute: string): Promise<any> {
+
 
         // Check data empty
         if (isEmpty(attribute)) throw new HttpException(400, `${attributeName}  is empty`);
@@ -85,11 +83,22 @@ Find by attribute service
 
     }
 
+    /* 
+    
+     Find by filter
+
+    */
+
+    async findAllByParam(dto: IParamSearch) {
+        const result = await this.query.findAllByParam(dto);
+        return result;
+    }
+
     /*
         Create  service
     */
 
-    public create = async (createData: TCreateDto): Promise<any> => {
+    public async create(createData: TCreateDto): Promise<any> {
 
         // Check data empty
         if (isEmpty(createData)) throw new HttpException(400, `${this.nameBase} data is empty`);
@@ -114,7 +123,7 @@ Find by attribute service
         Update service
     */
 
-    public update = async (dataId: string, updateData: TCreateDto): Promise<any> => {
+    public async update(dataId: string, updateData: TUpdateDto): Promise<any> {
 
         // Check data empty
         if (isEmpty(updateData)) throw new HttpException(400, `${this.nameBase} Data is empty`);
@@ -143,17 +152,30 @@ Find by attribute service
 
         }
 
+
         // update infor ======================
 
         // query
-        const findData: Omit<TBase, '_id'> = await this.query.findById(dataId);
+        const findData: any = await this.query.findById(dataId);
 
         let updatedData: any;
 
         if (findData) {
 
+            const updatedUser = { ...findData };
+
+            if ((updateData as any).accessable) {
+                updateData = {
+                    ...findData,
+                    accessable: {
+                        ...(findData as any).accessable,
+                        ...(updateData as any).accessable
+                    }
+                };
+            }
+
             // create Updated data
-            updatedData = { ...findData, ...updateData };
+            updatedData = { ...updatedUser, ...updateData };
 
             // Update handle  ==================== 
 
@@ -176,7 +198,7 @@ Find by attribute service
         Delete  service
     */
 
-    public delete = async (dataId: string): Promise<any> => {
+    public async delete(dataId: string): Promise<any> {
 
         // check exist
 

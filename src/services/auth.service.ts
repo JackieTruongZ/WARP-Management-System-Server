@@ -1,16 +1,6 @@
-import { hash, compare } from 'bcrypt';
-import { sign } from 'jsonwebtoken';
-import { SECRET_KEY } from '@config';
-import { CreateUserDto, CreateUserDtoGoogleAuth } from '@dtos/users.dto';
-import { HttpException } from '@exceptions/HttpException';
-import { DataStoredInToken, TokenData } from '@interfaces/auth.interface';
-import { User } from '@interfaces/users.interface';
-import { isEmpty } from '@utils/util';
-import { db } from '@/databases/db';
-import BaseService from '@/base/base.service';
-import config from '@/config/default'
 import qs from "qs";
 import axios from 'axios';
+import { UserGoogleAuth } from "@/interfaces/users.interface";
 
 interface GoogleTokensResult {
   access_token: string;
@@ -66,12 +56,12 @@ class AuthService {
 
 
 
-  public getGoogleUser = async ({ id_token, access_token }): Promise<CreateUserDtoGoogleAuth> => {
+  public getGoogleUser = async ({ id_token, access_token }): Promise<UserGoogleAuth> => {
 
     //-------- CALL GOOGL API GET INFOR USER -------------------------------------
 
     try {
-      const res = await axios.get<CreateUserDtoGoogleAuth>(
+      const res = await axios.get<UserGoogleAuth>(
         `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${access_token}`,
         {
           headers: {
