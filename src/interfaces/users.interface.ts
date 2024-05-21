@@ -23,6 +23,7 @@ export interface UserGoogleAuth {
 
 export interface UserInfor {
   _id: string,
+  teamId: string,
   name: string,
   email: string;
   givenName: string,
@@ -30,7 +31,7 @@ export interface UserInfor {
   verified_email: boolean,
   avatar: string,
   locale: string,
-  role: string,
+  role: string[],
   gender: string,
   date: Date,
   numberPhone: string,
@@ -43,6 +44,7 @@ export interface UserInfor {
 
 export interface UserInforAccess {
   _id: boolean,
+  teamId: boolean,
   name: boolean,
   email: boolean;
   givenName: boolean,

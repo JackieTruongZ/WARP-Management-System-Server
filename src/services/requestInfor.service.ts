@@ -18,7 +18,7 @@ class RequestInforService extends BaseService<any, any, any> {
         this.notificationService = new NotificationService();
     }
 
-    public async createRequest(create: string, type: string, createData: RequestInforSystemWithoutId | RequestInforUserWithoutId) {
+    public async createRequest(create: string, type: string, createData: RequestInforSystemWithoutId | RequestInforUserWithoutId,) {
 
         if (create == 'system') {
             if (type == 'update-info') {

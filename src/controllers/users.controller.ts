@@ -5,6 +5,7 @@ import baseController from '@/base/base.controller';
 import { NextFunction, Request, Response } from 'express';
 import { RequestWithUser } from '@/interfaces/auth.interface';
 import { transformUserData } from '@/utils/transformUserData';
+import { RoleUpdateData } from '@/interfaces/role.interface';
 
 class UsersController extends baseController<UserInfor, CreateUserDto, UpdateUserDto> {
   protected service: UserService;
@@ -33,6 +34,21 @@ class UsersController extends baseController<UserInfor, CreateUserDto, UpdateUse
       next(error);
     }
   }
+
+  public async updateRoleById(req: Request, res: Response, next: NextFunction) {
+
+    try {
+      const Id = req.params.id;
+      const roleUpdate: RoleUpdateData = req.body;
+
+      const update = await this.service.updateRoleById(Id, roleUpdate);
+
+    } catch (error) {
+      next(error)
+    }
+  }
+
+
 }
 
 export default UsersController;

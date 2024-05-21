@@ -1,12 +1,16 @@
 import { CreateUserDto, UpdateUserDto } from '@dtos/users.dto';
-import { User } from '@interfaces/users.interface';
+import { UserInfor } from '@interfaces/users.interface';
 import BaseService from '@/base/base.service';
 import UserQuery from '@/query/users.query';
-import { Profile } from 'passport-google-oauth20';
 import RequestInforService from './requestInfor.service';
 import { RequestInforSystemWithoutId } from '@/interfaces/request.interface';
+import { RoleUpdateData } from '@/interfaces/role.interface';
+import { isEmpty } from 'class-validator';
+import { HttpException } from '@/exceptions/HttpException';
+import TeamService from './team.service';
+import { Team } from '@/interfaces/team.interface';
 
-class UserService extends BaseService<User, CreateUserDto, UpdateUserDto> {
+class UserService extends BaseService<UserInfor, CreateUserDto, UpdateUserDto> {
 
   protected collectionName: string = 'users';
   protected nameBase: string = 'User';
@@ -14,6 +18,7 @@ class UserService extends BaseService<User, CreateUserDto, UpdateUserDto> {
   protected attributeBase: string = 'email';
   protected listAttribute: string[] = ['email', 'password'];
 
+  protected teamService: TeamService;
 
   protected query: UserQuery;
   private requestInfoService: RequestInforService;
@@ -22,6 +27,7 @@ class UserService extends BaseService<User, CreateUserDto, UpdateUserDto> {
     super();
     this.query = new UserQuery();
     this.requestInfoService = new RequestInforService();
+    this.teamService = new TeamService();
   }
 
   public findAndUpdateUser = async (profile: any) => {
@@ -31,6 +37,7 @@ class UserService extends BaseService<User, CreateUserDto, UpdateUserDto> {
     }
     else {
       const createUser: CreateUserDto = {
+        teamId: '',
         googleId: profile.id || ' ',
         email: profile.email || ' ',
         name: profile.name || ' ',
@@ -39,7 +46,7 @@ class UserService extends BaseService<User, CreateUserDto, UpdateUserDto> {
         verified_email: profile.verified_email || ' ',
         avatar: profile.picture || ' ',
         locale: profile.locale || ' ',
-        role: '',
+        role: [],
         gender: '',
         date: undefined,
         numberPhone: '',
@@ -53,6 +60,7 @@ class UserService extends BaseService<User, CreateUserDto, UpdateUserDto> {
         },
         accessable: {
           _id: true,
+          teamId: true,
           name: true,
           email: true,
           givenName: true,
@@ -67,7 +75,7 @@ class UserService extends BaseService<User, CreateUserDto, UpdateUserDto> {
           address: true,
           googleId: false,
           citizenIdentityCard: false,
-          bankInfor: false
+          bankInfor: false,
         }
       }
 
@@ -79,7 +87,7 @@ class UserService extends BaseService<User, CreateUserDto, UpdateUserDto> {
     }
   }
 
-  public update = async (dataId: string, updateData: UpdateUserDto): Promise<any> => {
+  public async update(dataId: string, updateData: UpdateUserDto): Promise<any> {
 
 
     const updatedData = await super.update(dataId, updateData);
@@ -97,6 +105,59 @@ class UserService extends BaseService<User, CreateUserDto, UpdateUserDto> {
     return updatedData;
 
   };
+
+  public async updateRoleById(Id: string, roleUpdate: RoleUpdateData) {
+
+    // Check data empty
+    if (isEmpty(roleUpdate)) throw new HttpException(400, `${this.nameBase} Data is empty`);
+
+
+    // query
+    const findData: any = await this.query.findById(Id);
+
+    let updatedData: any;
+
+    if (findData) {
+
+      const updatedUser = { ...findData };
+
+      // create Updated data
+      updatedData = { ...updatedUser, ...roleUpdate.role };
+
+      // Update handle  ==================== 
+
+      await this.query.updateData(Id, updatedData);
+      //====================
+
+    } else {
+
+      // Exception handle
+      throw new HttpException(409, `${this.nameBase} doesn't exist`);
+
+    }
+    //======================
+
+    return updatedData;
+  }
+
+  public async getManagerInfor(userId: string) {
+    const findUser: UserInfor = await this.query.findById(userId);
+    if (findUser) {
+
+      if (findUser.teamId) {
+        const teamInfor: Team = await this.teamService.findById(findUser.teamId);
+        if (teamInfor) {
+          const findUser: UserInfor = await this.query.findById(teamInfor.managerId);
+          return findUser;
+        }
+      }
+    } else {
+
+      // Exception handle
+      throw new HttpException(409, `${this.nameBase} doesn't exist`);
+
+    }
+  }
 
 }
 

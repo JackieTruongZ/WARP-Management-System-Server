@@ -1,11 +1,13 @@
 import BaseQuery from "@/base/base.query";
 import { db } from "@/databases/db";
 import { CreateUserDto, UpdateUserDto } from "@/dtos/users.dto";
+import { RoleUpdateData } from "@/interfaces/role.interface";
 import { User } from "@/interfaces/users.interface";
 import { hash } from "bcrypt";
 import { Filter } from "mongodb";
 
 class UserQuery extends BaseQuery<User, CreateUserDto, UpdateUserDto> {
+
     protected collectionName: string = 'users';
     protected attributeBase: string = 'email';
     protected listAttribute: string[] = ['email', 'password'];
@@ -19,6 +21,7 @@ class UserQuery extends BaseQuery<User, CreateUserDto, UpdateUserDto> {
 
         return findData;
     }
+
 }
 
 
