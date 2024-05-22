@@ -1,7 +1,7 @@
 import { DB_DATABASE, DB_HOST, DB_PORT } from "@/config";
 import { MongoClient, Db } from 'mongodb'
 
-const url = `mongodb://${DB_HOST}:${DB_PORT}`;
+const url = `mongodb+srv://datnguyentruongnn:datnguyentruongnn@poca.kzc5eti.mongodb.net/?retryWrites=true&w=majority&appName=poca`;
 
 const defaultDbName = `${DB_DATABASE}`;
 
