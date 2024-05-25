@@ -14,26 +14,15 @@ export let db: Db;
 export const connect = async (dbName: string = defaultDbName) => {
 
     try {
-        // Xác định đường dẫn tuyệt đối đến file log
-        const logFilePath = path.join(__dirname, '..', 'logs', 'error', '2024-05-24.log');
-
-        // Đọc nội dung file log đồng bộ
-        const logData = fs.readFileSync(logFilePath, 'utf8');
-
-        // Xử lý dữ liệu log
-        console.log("check");
-        
-        console.log("log Data :",logData);
-        
+        const conn = await client.connect();
+        db = conn.db(dbName);
+        console.log('====================================');
+        console.log('connect db okkkkk');
+        console.log('====================================');
+        return client;
     } catch (error) {
-        console.error('Lỗi khi đọc file log:', error);
-    }
+        console.log("error : ", error);
 
-    const conn = await client.connect();
-    db = conn.db(dbName);
-    console.log('====================================');
-    console.log('connect db okkkkk');
-    console.log('====================================');
-    return client;
+    }
 
 }
